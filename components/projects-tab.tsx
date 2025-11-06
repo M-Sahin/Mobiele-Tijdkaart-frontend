@@ -1,0 +1,184 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Plus, MoreVertical, Edit, Archive } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { apiGet, apiPost, apiPut } from "@/src/lib/api"
+
+interface Project {
+  id: string
+  name: string
+  client: string
+  hourlyRate: number
+  isActive: boolean
+}
+
+export function ProjectsTab() {
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [newProject, setNewProject] = useState({
+    name: "",
+    client: "",
+    hourlyRate: "",
+  })
+
+  // Fetch projects from API
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setIsLoading(true)
+        const data = await apiGet<Project[]>('/projects')
+        setProjects(data)
+      } catch (err) {
+        console.error('Failed to fetch projects:', err)
+        setError('Kon projecten niet laden')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProjects()
+  }, [])
+
+  const handleAddProject = async () => {
+    if (newProject.name && newProject.client && newProject.hourlyRate) {
+      try {
+        const projectData = {
+          name: newProject.name,
+          client: newProject.client,
+          hourlyRate: Number.parseFloat(newProject.hourlyRate),
+          isActive: true,
+        }
+        
+        const createdProject = await apiPost<Project>('/projects', projectData)
+        setProjects([...projects, createdProject])
+        setNewProject({ name: "", client: "", hourlyRate: "" })
+        setIsDialogOpen(false)
+      } catch (err) {
+        console.error('Failed to create project:', err)
+        setError('Kon project niet aanmaken')
+      }
+    }
+  }
+
+  const handleArchiveProject = async (id: string) => {
+    try {
+      await apiPut(`/projects/${id}`, { isActive: false })
+      setProjects(projects.map((p) => (p.id === id ? { ...p, isActive: false } : p)))
+    } catch (err) {
+      console.error('Failed to archive project:', err)
+      setError('Kon project niet inactief zetten')
+    }
+  }
+
+  const activeProjects = projects.filter((p) => p.isActive)
+
+  return (
+    <div className="h-full overflow-y-auto">
+      {/* Header */}
+      <header className="bg-primary text-primary-foreground px-6 py-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Mijn Projecten</h1>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="icon" variant="secondary" className="rounded-full h-10 w-10">
+              <Plus className="h-5 w-5" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[90vw] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Nieuw Project</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="project-name">Projectnaam</Label>
+                <Input
+                  id="project-name"
+                  value={newProject.name}
+                  onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                  placeholder="Bijv. Website Redesign"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client-name">Klantnaam</Label>
+                <Input
+                  id="client-name"
+                  value={newProject.client}
+                  onChange={(e) => setNewProject({ ...newProject, client: e.target.value })}
+                  placeholder="Bijv. Acme Corp"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hourly-rate">Uurtarief (€)</Label>
+                <Input
+                  id="hourly-rate"
+                  type="number"
+                  value={newProject.hourlyRate}
+                  onChange={(e) => setNewProject({ ...newProject, hourlyRate: e.target.value })}
+                  placeholder="85"
+                />
+              </div>
+              <Button onClick={handleAddProject} className="w-full">
+                Project Toevoegen
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </header>
+
+      {/* Projects List */}
+      <div className="px-6 py-6 space-y-3">
+        {error && (
+          <Card className="p-4 bg-destructive/10 text-destructive">
+            <p className="text-sm">{error}</p>
+          </Card>
+        )}
+        
+        {isLoading ? (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">Projecten laden...</p>
+          </Card>
+        ) : activeProjects.length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">Nog geen projecten. Klik op de + knop om te beginnen.</p>
+          </Card>
+        ) : (
+          activeProjects.map((project) => (
+            <Card key={project.id} className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg text-foreground">{project.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{project.client}</p>
+                  <p className="text-sm font-medium text-primary mt-2">€{project.hourlyRate}/uur</p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Bewerken
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleArchiveProject(project.id)}>
+                      <Archive className="h-4 w-4 mr-2" />
+                      Inactief Zetten
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
