@@ -119,40 +119,70 @@ export async function apiDelete<T>(endpoint: string): Promise<T> {
 export async function login(email: string, password: string): Promise<{ token: string }> {
   const url = `${API_BASE_URL}/auth/login`;
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || 'Login failed');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.message || 'Login failed');
+    }
+
+    return response.json();
+  } catch (error) {
+    // Als het een netwerk error is
+    if (error instanceof TypeError) {
+      console.error('Network error during login:', error);
+      throw new Error('Kan geen verbinding maken met de server. Controleer je internetverbinding.');
+    }
+    
+    // Re-throw andere errors
+    throw error;
   }
-
-  return response.json();
 }
 
 /**
  * Register functie (geen Authorization header nodig)
  */
-export async function register(email: string, password: string, name?: string): Promise<{ token: string; message?: string }> {
+export async function register(email: string, wachtwoord: string, wachtwoordBevestiging: string): Promise<{ token?: string; message?: string }> {
   const url = `${API_BASE_URL}/auth/register`;
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password, name }),
-  });
+  console.log('Attempting registration to:', url);
+  console.log('Request body:', { email, wachtwoord: '***', wachtwoordBevestiging: '***' });
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, wachtwoord, wachtwoordBevestiging }),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || 'Registration failed');
+    console.log('Registration response status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error('Registration error response:', errorData);
+      throw new Error(errorData?.message || 'Registratie mislukt');
+    }
+
+    // De API returnt mogelijk geen token, dus we maken het optioneel
+    const data = await response.json().catch(() => ({}));
+    return data;
+  } catch (error) {
+    // Als het een netwerk error is
+    if (error instanceof TypeError) {
+      console.error('Network error during registration:', error);
+      throw new Error('Kan geen verbinding maken met de server. Controleer je internetverbinding en of de API beschikbaar is.');
+    }
+    
+    // Re-throw andere errors
+    throw error;
   }
-
-  return response.json();
 }

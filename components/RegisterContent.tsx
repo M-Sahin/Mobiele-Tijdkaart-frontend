@@ -16,7 +16,6 @@ import Link from "next/link"
 
 // Zod validatieschema
 const registerSchema = z.object({
-  name: z.string().optional(),
   email: z
     .string()
     .min(1, "E-mailadres is verplicht")
@@ -60,20 +59,11 @@ function RegisterForm() {
   // Submit handler
   const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
     try {
-      // Roep de register API aan
-      const response = await apiRegister(data.email, data.password, data.name)
+      // Roep de register API aan met de juiste veldnamen
+      const response = await apiRegister(data.email, data.password, data.confirmPassword)
       
-      // Bij succes, sla token op via AuthContext (als backend een token teruggeeft)
-      if (response.token) {
-        auth.login(response.token)
-        
-        // Navigeer naar de redirect URL of home pagina
-        const redirect = searchParams.get('redirect') || '/'
-        router.push(redirect)
-      } else {
-        // Als geen token wordt teruggegeven, redirect naar login
-        router.push('/login?message=Registration successful. Please login.')
-      }
+      // Bij succes, redirect naar login (API returnt geen token bij registratie)
+      router.push('/login?message=Registratie succesvol! Je kunt nu inloggen.')
     } catch (err) {
       // Toon error message
       const errorMessage = err instanceof Error ? err.message : "Registratie mislukt. Probeer het opnieuw."
@@ -103,17 +93,6 @@ function RegisterForm() {
               {errors.root.message}
             </div>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="name">Naam (optioneel)</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Je volledige naam"
-              {...register("name")}
-              disabled={isSubmitting}
-            />
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">E-mailadres</Label>

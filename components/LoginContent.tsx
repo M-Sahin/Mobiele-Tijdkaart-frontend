@@ -32,6 +32,9 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const auth = useAuth()
 
+  // Check voor success message van registratie
+  const successMessage = searchParams.get('message')
+
   // react-hook-form initialisatie
   const {
     register,
@@ -84,6 +87,12 @@ function LoginForm() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {successMessage && (
+            <div className="bg-green-500/10 text-green-600 dark:text-green-400 text-sm p-3 rounded-md">
+              {successMessage}
+            </div>
+          )}
+          
           {errors.root && (
             <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
               {errors.root.message}
