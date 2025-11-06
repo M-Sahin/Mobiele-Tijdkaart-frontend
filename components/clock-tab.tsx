@@ -29,18 +29,35 @@ export function ClockTab() {
   const [projects, setProjects] = useState<Project[]>([])
   const [recentEntries, setRecentEntries] = useState<TimeEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [apiAvailable, setApiAvailable] = useState(false)
 
   // Fetch projects and recent entries
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true)
-        const [projectsData, entriesData] = await Promise.all([
-          apiGet<Project[]>('/projects'),
-          apiGet<TimeEntry[]>('/time-entries/recent')
-        ])
-        setProjects(projectsData.filter(p => p.isActive))
-        setRecentEntries(entriesData)
+        
+        // Try to load projects from localStorage first
+        const cachedProjects = localStorage.getItem('projects')
+        if (cachedProjects) {
+          const parsedProjects = JSON.parse(cachedProjects)
+          setProjects(parsedProjects.filter((p: Project) => p.isActive))
+        }
+        
+        // Try to fetch from API
+        try {
+          const [projectsData, entriesData] = await Promise.all([
+            apiGet<Project[]>('/projects'),
+            apiGet<TimeEntry[]>('/time-entries/recent')
+          ])
+          setProjects(projectsData.filter(p => p.isActive))
+          setRecentEntries(entriesData)
+          setApiAvailable(true)
+        } catch (apiErr) {
+          // API not available - continue with cached/empty data
+          console.log('API not available, using cached data')
+          setApiAvailable(false)
+        }
       } catch (err) {
         console.error('Failed to fetch data:', err)
       } finally {
@@ -74,20 +91,26 @@ export function ClockTab() {
       setIsClocked(true)
     } else {
       // Stop klokken en sla entry op
-      try {
-        const endTime = new Date()
-        await apiPost('/time-entries', {
-          projectId: selectedProject,
-          startTime: startTime?.toISOString(),
-          endTime: endTime.toISOString(),
-          duration: elapsedTime
-        })
-        
-        // Refresh recent entries
-        const entriesData = await apiGet<TimeEntry[]>('/time-entries/recent')
-        setRecentEntries(entriesData)
-      } catch (err) {
-        console.error('Failed to save time entry:', err)
+      const endTime = new Date()
+      
+      if (apiAvailable) {
+        try {
+          await apiPost('/time-entries', {
+            projectId: selectedProject,
+            startTime: startTime?.toISOString(),
+            endTime: endTime.toISOString(),
+            duration: elapsedTime
+          })
+          
+          // Refresh recent entries
+          const entriesData = await apiGet<TimeEntry[]>('/time-entries/recent')
+          setRecentEntries(entriesData)
+        } catch (err) {
+          console.error('Failed to save time entry:', err)
+          // Continue anyway - local state is updated
+        }
+      } else {
+        console.log('API not available, time entry not saved')
       }
       
       setIsClocked(false)

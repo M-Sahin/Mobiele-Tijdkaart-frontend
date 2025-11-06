@@ -2,8 +2,11 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useForm, type SubmitHandler } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { useAuth } from "@/src/context/AuthContext"
 import { register as apiRegister } from "@/src/lib/api"
 import { Button } from "@/components/ui/button"
@@ -13,16 +16,40 @@ import { Card } from "@/components/ui/card"
 import { Clock } from "lucide-react"
 import Link from "next/link"
 
+// Zod validatieschema
+const registerSchema = z.object({
+  name: z.string().optional(),
+  email: z
+    .string()
+    .min(1, "E-mailadres is verplicht")
+    .email("Voer een geldig e-mailadres in"),
+  password: z
+    .string()
+    .min(6, "Wachtwoord moet minimaal 6 tekens bevatten"),
+  confirmPassword: z
+    .string()
+    .min(6, "Bevestig je wachtwoord")
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Wachtwoorden komen niet overeen",
+  path: ["confirmPassword"],
+})
+
+type RegisterFormData = z.infer<typeof registerSchema>
+
 export default function RegisterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const auth = useAuth()
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+
+  // react-hook-form initialisatie
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError: setFormError,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  })
 
   // Redirect als al ingelogd
   useEffect(() => {
@@ -32,26 +59,11 @@ export default function RegisterPage() {
     }
   }, [auth.isLoggedIn, router, searchParams])
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-
-    // Validatie
-    if (password !== confirmPassword) {
-      setError("Wachtwoorden komen niet overeen")
-      return
-    }
-
-    if (password.length < 6) {
-      setError("Wachtwoord moet minimaal 6 tekens bevatten")
-      return
-    }
-
-    setIsLoading(true)
-
+  // Submit handler
+  const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
     try {
       // Roep de register API aan
-      const response = await apiRegister(email, password, name)
+      const response = await apiRegister(data.email, data.password, data.name)
       
       // Bij succes, sla token op via AuthContext (als backend een token teruggeeft)
       if (response.token) {
@@ -66,9 +78,11 @@ export default function RegisterPage() {
       }
     } catch (err) {
       // Toon error message
-      setError(err instanceof Error ? err.message : "Registratie mislukt. Probeer het opnieuw.")
-    } finally {
-      setIsLoading(false)
+      const errorMessage = err instanceof Error ? err.message : "Registratie mislukt. Probeer het opnieuw."
+      setFormError("root", {
+        type: "manual",
+        message: errorMessage,
+      })
     }
   }
 
@@ -85,10 +99,10 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <form onSubmit={handleRegister} className="space-y-4">
-          {error && (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {errors.root && (
             <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-              {error}
+              {errors.root.message}
             </div>
           )}
 
@@ -98,9 +112,8 @@ export default function RegisterPage() {
               id="name"
               type="text"
               placeholder="Je volledige naam"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isLoading}
+              {...register("name")}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -110,11 +123,12 @@ export default function RegisterPage() {
               id="email"
               type="email"
               placeholder="naam@voorbeeld.nl"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
+              {...register("email")}
+              disabled={isSubmitting}
             />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -123,12 +137,12 @@ export default function RegisterPage() {
               id="password"
               type="password"
               placeholder="Minimaal 6 tekens"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-              minLength={6}
+              {...register("password")}
+              disabled={isSubmitting}
             />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -137,16 +151,16 @@ export default function RegisterPage() {
               id="confirmPassword"
               type="password"
               placeholder="Herhaal je wachtwoord"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={isLoading}
-              minLength={6}
+              {...register("confirmPassword")}
+              disabled={isSubmitting}
             />
+            {errors.confirmPassword && (
+              <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+            )}
           </div>
 
-          <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-            {isLoading ? "Account aanmaken..." : "Account aanmaken"}
+          <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+            {isSubmitting ? "Account aanmaken..." : "Account aanmaken"}
           </Button>
         </form>
 

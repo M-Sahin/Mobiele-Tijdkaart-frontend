@@ -35,12 +35,21 @@ export function OverviewTab() {
     const fetchData = async () => {
       try {
         setIsLoading(true)
-        const [timeData, mileageData] = await Promise.all([
-          apiGet<TimeEntry[]>(`/overview/time-entries?period=${period}`),
-          apiGet<MileageEntry[]>(`/overview/mileage?period=${period}`)
-        ])
-        setTimeEntries(timeData)
-        setMileageEntries(mileageData)
+        
+        // Try to fetch from API
+        try {
+          const [timeData, mileageData] = await Promise.all([
+            apiGet<TimeEntry[]>(`/overview/time-entries?period=${period}`),
+            apiGet<MileageEntry[]>(`/overview/mileage?period=${period}`)
+          ])
+          setTimeEntries(timeData)
+          setMileageEntries(mileageData)
+        } catch (apiErr) {
+          // API not available - use empty arrays
+          console.log('API not available for overview data')
+          setTimeEntries([])
+          setMileageEntries([])
+        }
       } catch (err) {
         console.error('Failed to fetch overview data:', err)
       } finally {

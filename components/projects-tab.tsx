@@ -23,22 +23,38 @@ export function ProjectsTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [apiAvailable, setApiAvailable] = useState(false)
   const [newProject, setNewProject] = useState({
     name: "",
     client: "",
     hourlyRate: "",
   })
 
-  // Fetch projects from API
+  // Load projects from localStorage or API
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         setIsLoading(true)
-        const data = await apiGet<Project[]>('/projects')
-        setProjects(data)
+        
+        // First, try to load from localStorage
+        const cachedProjects = localStorage.getItem('projects')
+        if (cachedProjects) {
+          setProjects(JSON.parse(cachedProjects))
+        }
+        
+        // Try to fetch from API
+        try {
+          const data = await apiGet<Project[]>('/projects')
+          setProjects(data)
+          setApiAvailable(true)
+          localStorage.setItem('projects', JSON.stringify(data))
+        } catch (apiErr) {
+          // API not available - use cached data or empty array
+          console.log('API not available, using local storage')
+          setApiAvailable(false)
+        }
       } catch (err) {
-        console.error('Failed to fetch projects:', err)
-        setError('Kon projecten niet laden')
+        console.error('Failed to load projects:', err)
       } finally {
         setIsLoading(false)
       }
@@ -49,32 +65,51 @@ export function ProjectsTab() {
 
   const handleAddProject = async () => {
     if (newProject.name && newProject.client && newProject.hourlyRate) {
-      try {
-        const projectData = {
-          name: newProject.name,
-          client: newProject.client,
-          hourlyRate: Number.parseFloat(newProject.hourlyRate),
-          isActive: true,
-        }
-        
-        const createdProject = await apiPost<Project>('/projects', projectData)
-        setProjects([...projects, createdProject])
-        setNewProject({ name: "", client: "", hourlyRate: "" })
-        setIsDialogOpen(false)
-      } catch (err) {
-        console.error('Failed to create project:', err)
-        setError('Kon project niet aanmaken')
+      const projectData: Project = {
+        id: Date.now().toString(),
+        name: newProject.name,
+        client: newProject.client,
+        hourlyRate: Number.parseFloat(newProject.hourlyRate),
+        isActive: true,
       }
+
+      if (apiAvailable) {
+        try {
+          const createdProject = await apiPost<Project>('/projects', projectData)
+          const updatedProjects = [...projects, createdProject]
+          setProjects(updatedProjects)
+          localStorage.setItem('projects', JSON.stringify(updatedProjects))
+        } catch (err) {
+          console.error('Failed to create project via API:', err)
+          // Fallback to local storage
+          const updatedProjects = [...projects, projectData]
+          setProjects(updatedProjects)
+          localStorage.setItem('projects', JSON.stringify(updatedProjects))
+        }
+      } else {
+        // API not available, save to localStorage only
+        const updatedProjects = [...projects, projectData]
+        setProjects(updatedProjects)
+        localStorage.setItem('projects', JSON.stringify(updatedProjects))
+      }
+
+      setNewProject({ name: "", client: "", hourlyRate: "" })
+      setIsDialogOpen(false)
     }
   }
 
   const handleArchiveProject = async (id: string) => {
-    try {
-      await apiPut(`/projects/${id}`, { isActive: false })
-      setProjects(projects.map((p) => (p.id === id ? { ...p, isActive: false } : p)))
-    } catch (err) {
-      console.error('Failed to archive project:', err)
-      setError('Kon project niet inactief zetten')
+    const updatedProjects = projects.map((p) => (p.id === id ? { ...p, isActive: false } : p))
+    setProjects(updatedProjects)
+    localStorage.setItem('projects', JSON.stringify(updatedProjects))
+
+    if (apiAvailable) {
+      try {
+        await apiPut(`/projects/${id}`, { isActive: false })
+      } catch (err) {
+        console.error('Failed to archive project via API:', err)
+        // Already updated locally, so no need to revert
+      }
     }
   }
 

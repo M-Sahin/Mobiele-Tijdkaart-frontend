@@ -2,8 +2,11 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useForm, type SubmitHandler } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { useAuth } from "@/src/context/AuthContext"
 import { login as apiLogin } from "@/src/lib/api"
 import { Button } from "@/components/ui/button"
@@ -13,14 +16,33 @@ import { Card } from "@/components/ui/card"
 import { Clock } from "lucide-react"
 import Link from "next/link"
 
+// Zod validatieschema
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "E-mailadres is verplicht")
+    .email("Voer een geldig e-mailadres in"),
+  password: z
+    .string()
+    .min(6, "Wachtwoord moet minimaal 6 tekens bevatten")
+})
+
+type LoginFormData = z.infer<typeof loginSchema>
+
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const auth = useAuth()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+
+  // react-hook-form initialisatie
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError: setFormError,
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  })
 
   // Redirect als al ingelogd
   useEffect(() => {
@@ -30,14 +52,11 @@ export default function LoginPage() {
     }
   }, [auth.isLoggedIn, router, searchParams])
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
-
+  // Submit handler
+  const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     try {
       // Roep de login API aan
-      const response = await apiLogin(email, password)
+      const response = await apiLogin(data.email, data.password)
       
       // Bij succes, sla token op via AuthContext
       auth.login(response.token)
@@ -47,9 +66,11 @@ export default function LoginPage() {
       router.push(redirect)
     } catch (err) {
       // Toon error message
-      setError(err instanceof Error ? err.message : "Inloggen mislukt. Controleer je gegevens.")
-    } finally {
-      setIsLoading(false)
+      const errorMessage = err instanceof Error ? err.message : "Inloggen mislukt. Controleer je gegevens."
+      setFormError("root", {
+        type: "manual",
+        message: errorMessage,
+      })
     }
   }
 
@@ -64,10 +85,10 @@ export default function LoginPage() {
           <p className="text-muted-foreground mt-2 text-center">Log in om je werktijd bij te houden</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          {error && (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {errors.root && (
             <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-              {error}
+              {errors.root.message}
             </div>
           )}
 
@@ -77,11 +98,12 @@ export default function LoginPage() {
               id="email"
               type="email"
               placeholder="naam@voorbeeld.nl"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
+              {...register("email")}
+              disabled={isSubmitting}
             />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -90,15 +112,16 @@ export default function LoginPage() {
               id="password"
               type="password"
               placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
+              {...register("password")}
+              disabled={isSubmitting}
             />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password.message}</p>
+            )}
           </div>
 
-          <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-            {isLoading ? "Inloggen..." : "Inloggen"}
+          <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+            {isSubmitting ? "Inloggen..." : "Inloggen"}
           </Button>
         </form>
 
