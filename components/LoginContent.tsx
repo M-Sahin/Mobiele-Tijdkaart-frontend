@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useForm, type SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -27,7 +27,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>
 
-export function LoginContent() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const auth = useAuth()
@@ -131,5 +131,17 @@ export function LoginContent() {
         </p>
       </Card>
     </div>
+  )
+}
+
+export function LoginContent() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-primary/10 to-background flex items-center justify-center">
+        <div className="text-muted-foreground">Laden...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
