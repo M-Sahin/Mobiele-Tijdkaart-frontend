@@ -186,3 +186,91 @@ export async function register(email: string, wachtwoord: string, wachtwoordBeve
     throw error;
   }
 }
+
+// ===== TypeScript Interfaces voor Tijdregistratie =====
+
+export interface Project {
+  id: number;
+  naam: string;
+}
+
+export interface TijdRegistratie {
+  id: number;
+  projectId: number;
+  startTijd: string;
+  eindTijd?: string | null;
+  omschrijving?: string | null;
+}
+
+// ===== Tijdregistratie API Functies =====
+
+/**
+ * Haal alle projecten op
+ */
+export async function getProjecten(): Promise<Project[]> {
+  try {
+    return await apiGet<Project[]>('/projecten');
+  } catch (error) {
+    console.error('Error fetching projecten:', error);
+    // Return empty array als fallback
+    return [];
+  }
+}
+
+/**
+ * Haal lopende tijdregistratie op
+ */
+export async function getLopendeTijdRegistratie(): Promise<TijdRegistratie | null> {
+  try {
+    return await apiGet<TijdRegistratie>('/tijd/lopend');
+  } catch (error) {
+    // 404 betekent geen lopende registratie
+    if (error instanceof Error && error.message.includes('404')) {
+      return null;
+    }
+    console.error('Error fetching lopende tijd:', error);
+    return null;
+  }
+}
+
+/**
+ * Start nieuwe tijdregistratie
+ */
+export async function startTijdRegistratie(projectId: number, startTijd: string, omschrijving?: string): Promise<TijdRegistratie> {
+  return await apiPost<TijdRegistratie>('/tijd', {
+    projectId,
+    startTijd,
+    omschrijving
+  });
+}
+
+/**
+ * Stop lopende tijdregistratie
+ */
+export async function stopTijdRegistratie(id: number): Promise<TijdRegistratie> {
+  return await apiPut<TijdRegistratie>(`/tijd/${id}/stop`, {});
+}
+
+/**
+ * Haal alle tijdregistraties op
+ */
+export async function getAlleTijdRegistraties(): Promise<TijdRegistratie[]> {
+  try {
+    return await apiGet<TijdRegistratie[]>('/tijd');
+  } catch (error) {
+    console.error('Error fetching tijd registraties:', error);
+    return [];
+  }
+}
+
+/**
+ * Haal tijdregistraties per project op
+ */
+export async function getTijdRegistratiesPerProject(projectId: number): Promise<TijdRegistratie[]> {
+  try {
+    return await apiGet<TijdRegistratie[]>(`/tijd/project/${projectId}`);
+  } catch (error) {
+    console.error('Error fetching tijd registraties per project:', error);
+    return [];
+  }
+}
