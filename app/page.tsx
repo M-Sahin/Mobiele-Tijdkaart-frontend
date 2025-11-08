@@ -10,6 +10,7 @@ import { BottomNav } from "@/components/bottom-nav"
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"clock" | "projects" | "overview">("clock")
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const { isLoggedIn } = useAuth()
   const router = useRouter()
 
@@ -24,8 +25,6 @@ export default function HomePage() {
   if (!isLoggedIn) {
     return null
   }
-
-  const [projectDialogOpen, setProjectDialogOpen] = useState(false)
 
   const handleOpenProjectDialog = () => {
     setActiveTab("projects")
