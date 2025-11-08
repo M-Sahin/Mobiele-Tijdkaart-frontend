@@ -37,17 +37,19 @@ export default function HomePage() {
       <main className="h-[calc(100vh-5rem)]">
         {activeTab === "clock" && (
           <ClockTab 
+            key="clock-tab"
             onNavigateToProjects={() => setActiveTab("projects")}
             onOpenProjectDialog={handleOpenProjectDialog}
           />
         )}
         {activeTab === "projects" && (
           <ProjectsTab 
+            key="projects-tab"
             isDialogOpen={projectDialogOpen}
             onDialogOpenChange={setProjectDialogOpen}
           />
         )}
-        {activeTab === "overview" && <OverviewTab />}
+        {activeTab === "overview" && <OverviewTab key="overview-tab" />}
       </main>
 
       {/* Bottom Navigation */}

@@ -218,6 +218,27 @@ export async function getProjecten(): Promise<Project[]> {
 }
 
 /**
+ * Maak een nieuw project aan
+ */
+export async function createProject(naam: string): Promise<Project> {
+  return await apiPost<Project>('/projecten', { naam });
+}
+
+/**
+ * Update een bestaand project
+ */
+export async function updateProject(id: number, naam: string): Promise<Project> {
+  return await apiPut<Project>(`/projecten/${id}`, { naam });
+}
+
+/**
+ * Archiveer/verwijder een project
+ */
+export async function deleteProject(id: number): Promise<void> {
+  await apiDelete<void>(`/projecten/${id}`);
+}
+
+/**
  * Haal lopende tijdregistratie op
  */
 export async function getLopendeTijdRegistratie(): Promise<TijdRegistratie | null> {
