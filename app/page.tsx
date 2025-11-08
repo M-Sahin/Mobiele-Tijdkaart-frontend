@@ -25,12 +25,29 @@ export default function HomePage() {
     return null
   }
 
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false)
+
+  const handleOpenProjectDialog = () => {
+    setActiveTab("projects")
+    setProjectDialogOpen(true)
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Main Content */}
       <main className="h-[calc(100vh-5rem)]">
-        {activeTab === "clock" && <ClockTab />}
-        {activeTab === "projects" && <ProjectsTab />}
+        {activeTab === "clock" && (
+          <ClockTab 
+            onNavigateToProjects={() => setActiveTab("projects")}
+            onOpenProjectDialog={handleOpenProjectDialog}
+          />
+        )}
+        {activeTab === "projects" && (
+          <ProjectsTab 
+            isDialogOpen={projectDialogOpen}
+            onDialogOpenChange={setProjectDialogOpen}
+          />
+        )}
         {activeTab === "overview" && <OverviewTab />}
       </main>
 

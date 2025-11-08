@@ -15,7 +15,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
         <button
           onClick={() => onTabChange("clock")}
           className={cn(
-            "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+            "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors cursor-pointer",
             activeTab === "clock" ? "text-primary" : "text-muted-foreground",
           )}
         >
@@ -26,7 +26,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
         <button
           onClick={() => onTabChange("projects")}
           className={cn(
-            "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+            "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors cursor-pointer",
             activeTab === "projects" ? "text-primary" : "text-muted-foreground",
           )}
         >
@@ -37,7 +37,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
         <button
           onClick={() => onTabChange("overview")}
           className={cn(
-            "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+            "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors cursor-pointer",
             activeTab === "overview" ? "text-primary" : "text-muted-foreground",
           )}
         >

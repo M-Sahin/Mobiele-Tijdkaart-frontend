@@ -18,17 +18,26 @@ interface Project {
   isActive: boolean
 }
 
-export function ProjectsTab() {
+interface ProjectsTabProps {
+  isDialogOpen?: boolean
+  onDialogOpenChange?: (open: boolean) => void
+}
+
+export function ProjectsTab({ isDialogOpen: externalDialogOpen, onDialogOpenChange }: ProjectsTabProps = {}) {
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [internalDialogOpen, setInternalDialogOpen] = useState(false)
   const [apiAvailable, setApiAvailable] = useState(false)
   const [newProject, setNewProject] = useState({
     name: "",
     client: "",
     hourlyRate: "",
   })
+
+  // Use external control if provided, otherwise use internal state
+  const isDialogOpen = externalDialogOpen !== undefined ? externalDialogOpen : internalDialogOpen
+  const setIsDialogOpen = onDialogOpenChange || setInternalDialogOpen
 
   // Load projects from localStorage or API
   useEffect(() => {
@@ -122,7 +131,7 @@ export function ProjectsTab() {
         <h1 className="text-2xl font-bold">Mijn Projecten</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="icon" variant="secondary" className="rounded-full h-10 w-10">
+            <Button size="icon" variant="secondary" className="rounded-full h-10 w-10 cursor-pointer">
               <Plus className="h-5 w-5" />
             </Button>
           </DialogTrigger>
@@ -159,7 +168,7 @@ export function ProjectsTab() {
                   placeholder="85"
                 />
               </div>
-              <Button onClick={handleAddProject} className="w-full">
+              <Button onClick={handleAddProject} className="w-full cursor-pointer">
                 Project Toevoegen
               </Button>
             </div>
@@ -194,16 +203,16 @@ export function ProjectsTab() {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="cursor-pointer">
                       <MoreVertical className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer">
                       <Edit className="h-4 w-4 mr-2" />
                       Bewerken
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleArchiveProject(project.id)}>
+                    <DropdownMenuItem onClick={() => handleArchiveProject(project.id)} className="cursor-pointer">
                       <Archive className="h-4 w-4 mr-2" />
                       Inactief Zetten
                     </DropdownMenuItem>
