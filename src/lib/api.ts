@@ -192,6 +192,8 @@ export async function register(email: string, wachtwoord: string, wachtwoordBeve
 export interface Project {
   id: number;
   naam: string;
+  klantnaam?: string;  // Backend veld
+  uurtarief?: number;  // Backend veld
 }
 
 export interface TijdRegistratie {
@@ -220,15 +222,15 @@ export async function getProjecten(): Promise<Project[]> {
 /**
  * Maak een nieuw project aan
  */
-export async function createProject(naam: string): Promise<Project> {
-  return await apiPost<Project>('/projecten', { naam });
+export async function createProject(naam: string, klantnaam?: string, uurtarief?: number): Promise<Project> {
+  return await apiPost<Project>('/projecten', { naam, klantnaam, uurtarief });
 }
 
 /**
  * Update een bestaand project
  */
-export async function updateProject(id: number, naam: string): Promise<Project> {
-  return await apiPut<Project>(`/projecten/${id}`, { naam });
+export async function updateProject(id: number, naam: string, klantnaam?: string, uurtarief?: number): Promise<Project> {
+  return await apiPut<Project>(`/projecten/${id}`, { naam, klantnaam, uurtarief });
 }
 
 /**

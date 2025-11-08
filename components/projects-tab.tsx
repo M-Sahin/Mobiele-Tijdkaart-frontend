@@ -22,6 +22,8 @@ export function ProjectsTab({ isDialogOpen: externalDialogOpen, onDialogOpenChan
   const [internalDialogOpen, setInternalDialogOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [projectName, setProjectName] = useState("")
+  const [klantnaam, setKlantnaam] = useState("")
+  const [uurtarief, setUurtarief] = useState("")
 
   // Use external control if provided, otherwise use internal state
   const isDialogOpen = externalDialogOpen !== undefined ? externalDialogOpen : internalDialogOpen
@@ -53,16 +55,20 @@ export function ProjectsTab({ isDialogOpen: externalDialogOpen, onDialogOpenChan
     }
 
     try {
+      const uurtariefNumber = uurtarief ? parseFloat(uurtarief) : undefined
+      
       if (editingProject) {
         // Update existing project
-        await updateProject(editingProject.id, projectName)
+        await updateProject(editingProject.id, projectName, klantnaam || undefined, uurtariefNumber)
       } else {
         // Create new project
-        await createProject(projectName)
+        await createProject(projectName, klantnaam || undefined, uurtariefNumber)
       }
       
       await fetchProjects()
       setProjectName("")
+      setKlantnaam("")
+      setUurtarief("")
       setEditingProject(null)
       setIsDialogOpen(false)
       setError("")
@@ -75,6 +81,8 @@ export function ProjectsTab({ isDialogOpen: externalDialogOpen, onDialogOpenChan
   const handleEditProject = (project: Project) => {
     setEditingProject(project)
     setProjectName(project.naam)
+    setKlantnaam(project.klantnaam || "")
+    setUurtarief(project.uurtarief?.toString() || "")
     setIsDialogOpen(true)
   }
 
@@ -96,6 +104,8 @@ export function ProjectsTab({ isDialogOpen: externalDialogOpen, onDialogOpenChan
     setIsDialogOpen(open)
     if (!open) {
       setProjectName("")
+      setKlantnaam("")
+      setUurtarief("")
       setEditingProject(null)
       setError("")
     }
@@ -123,12 +133,32 @@ export function ProjectsTab({ isDialogOpen: externalDialogOpen, onDialogOpenChan
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="project-name">Projectnaam</Label>
+                <Label htmlFor="project-name">Projectnaam *</Label>
                 <Input
                   id="project-name"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="Bijv. Website Redesign"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client-name">Opdrachtgever</Label>
+                <Input
+                  id="client-name"
+                  value={klantnaam}
+                  onChange={(e) => setKlantnaam(e.target.value)}
+                  placeholder="Bijv. Acme Corp"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hourly-rate">Uurtarief (€)</Label>
+                <Input
+                  id="hourly-rate"
+                  type="number"
+                  step="0.01"
+                  value={uurtarief}
+                  onChange={(e) => setUurtarief(e.target.value)}
+                  placeholder="85.00"
                 />
               </div>
               <Button onClick={handleSaveProject} className="w-full cursor-pointer">
@@ -155,6 +185,12 @@ export function ProjectsTab({ isDialogOpen: externalDialogOpen, onDialogOpenChan
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="font-semibold text-lg text-foreground">{project.naam}</h3>
+                  {project.klantnaam && (
+                    <p className="text-sm text-muted-foreground mt-1">{project.klantnaam}</p>
+                  )}
+                  {project.uurtarief && (
+                    <p className="text-sm font-medium text-primary mt-2">€{project.uurtarief.toFixed(2)}/uur</p>
+                  )}
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
